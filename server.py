@@ -1,9 +1,15 @@
 import socket
 import psycopg2
+import json
 
 bert_db = "postgresql://neondb_owner:npg_WHRq2Okh6nzw@ep-old-pond-akp4qnxs-pooler.c-3.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 marc_db = "f"
 
+command_list = [
+    {"code" : "MOISTURE_LEVEL", "display" : "What is the average moisture inside our kitchen fridges in the past hours, week and month?"},
+    {"code" : "WATER_CONSUMPTION", "display" : "What is the average water consumption per cycle across our smart dishwashers in the past hour, week and month?"},
+    {"code" : "ELECTRICITY_USAGE", "display" : "Which house consumed more electricity in the past 24 hours, and by how much?"}
+]
 
 def query_moisture():
     #db stuff
@@ -34,6 +40,8 @@ s.bind(('0.0.0.0', PORT)) # listen on all network interfaces and set port as 102
 s.listen(1) # set it to listen
 print(f"Server listening on port {PORT}...")
 conn, addr = s.accept() # get the connection and address
+command_list_json = json.dumps(command_list)
+conn.send(command_list_json.encode('utf-8'))
 while True:
     data = conn.recv(1024) # receive
     if not data: break # if theres no more data then stop

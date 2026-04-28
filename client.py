@@ -1,4 +1,5 @@
 import socket
+import json
 ip = input("IP: ")
 try: # to return errors when port is not a number
     port = int(input("Port: "))
@@ -9,8 +10,11 @@ s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # using this so i can re
 try: # fails if we cannot connect
     s.connect((ip, port)) # make a connection using ip and port input
     print("Connected established.")
+    command_list_recv = s.recv(4096)
+    command_list_json = command_list_recv.decode('utf-8')
+    command_list = json.loads(command_list_json)
+    print(command_list)
     while True: # loop so i can input more stuff
-        print("1. What is the average moisture inside our kitchen fridges in the past hours, week and month?\n2. What is the average water consumption per cycle across our smart dishwashers in the past hour, week and month?\n3. Which house consumed more electricity in the past 24 hours, and by how much?")
         msg = input("> ") # show input
         queries = {
             "1" : "MOISTURE_LEVEL",
