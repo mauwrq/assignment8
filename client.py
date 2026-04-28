@@ -1,5 +1,13 @@
 import socket
 import json
+
+def build_command_menu(command_list):
+    command_menu = ""
+    for i, command in enumerate(command_list):
+        command_menu += f"{i + 1}. {command['display']}\n"
+    return command_menu.strip()
+
+
 ip = input("IP: ")
 try: # to return errors when port is not a number
     port = int(input("Port: "))
@@ -13,7 +21,8 @@ try: # fails if we cannot connect
     command_list_recv = s.recv(4096)
     command_list_json = command_list_recv.decode('utf-8')
     command_list = json.loads(command_list_json)
-    print(command_list)
+    command_menu = build_command_menu(command_list)
+    print(command_menu)
     while True: # loop so i can input more stuff
         msg = input("> ") # show input
         queries = {
