@@ -7,7 +7,6 @@ def build_command_menu(command_list):
         command_menu += f"{i + 1}. {command['display']}\n"
     return command_menu.strip()
 
-
 ip = input("IP: ")
 try: # to return errors when port is not a number
     port = int(input("Port: "))
@@ -24,13 +23,8 @@ try: # fails if we cannot connect
     command_menu = build_command_menu(command_list)
     print(command_menu)
     while True: # loop so i can input more stuff
-        msg = input("> ") # show input
-        queries = {
-            "1" : "MOISTURE_LEVEL",
-            "2" : "WATER_CONSUMPTION",
-            "3" : "ELECTRICITY_USAGE"
-        }
-        s.send(queries[msg].encode()) # send as bytes
+        choice = input("> ") # show input
+        s.send(command_list[int(choice) - 1]['code'].encode()) # send as bytes
         print(s.recv(1024).decode()) # decode bytes to text
-except:
-    print("Error: Invalid IP or Port. Connection failed.")
+except Exception as e:
+    print(f"Error: {e}")
