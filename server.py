@@ -1,9 +1,12 @@
 import socket
 import psycopg2
 import json
+import os
+from dotenv import load_dotenv
 
-bert_db = "postgresql://neondb_owner:npg_WHRq2Okh6nzw@ep-old-pond-akp4qnxs-pooler.c-3.us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-marc_db = "f"
+load_dotenv()
+MARC_DB = os.getenv("MARC_DB")
+BERT_DB = os.getenv("BERT_DB")
 
 command_list = [
     {"code" : "MOISTURE_LEVEL", "display" : "What is the average moisture inside our kitchen fridges in the past hours, week and month?"},
