@@ -25,11 +25,11 @@ def query_water():
     return "Water usage is 100 liters."
 
 def query_select(user_choice):
-    if user_choice == "moisture_level":
+    if user_choice == "MOISTURE_LEVEL":
         return query_moisture()
-    elif user_choice == "water_consumption":
+    elif user_choice == "WATER_CONSUMPTION":
         return query_water()
-    elif user_choice == "electricity_usage":
+    elif user_choice == "ELECTRICITY_USAGE":
         return query_electricity()
     else:
         return "Invalid query."
@@ -50,5 +50,5 @@ while True:
     response = query_select(client_message) # run the query select function with the client's 1, 2, or 3
 
     conn.send(response.encode())
-    print(data.decode()) # we get back bytes so we want to decode them into strings
-    conn.send(data.upper()) # send back what they sent in all caps
+    # print(data.decode()) # we get back bytes so we want to decode them into strings
+    # conn.send(data.upper()) # send back what they sent in all caps
