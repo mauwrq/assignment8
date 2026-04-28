@@ -39,9 +39,12 @@ s = socket.socket() # initialize socket
 s.bind(('0.0.0.0', PORT)) # listen on all network interfaces and set port as 1024 (change to whatever port you have opened)
 s.listen(1) # set it to listen
 print(f"Server listening on port {PORT}...")
+
+# send commands
 conn, addr = s.accept() # get the connection and address
 command_list_json = json.dumps(command_list)
 conn.send(command_list_json.encode('utf-8'))
+
 while True:
     data = conn.recv(1024) # receive
     if not data: break # if theres no more data then stop
@@ -50,5 +53,3 @@ while True:
     response = query_select(client_message) # run the query select function with the client's 1, 2, or 3
 
     conn.send(response.encode())
-    # print(data.decode()) # we get back bytes so we want to decode them into strings
-    # conn.send(data.upper()) # send back what they sent in all caps
