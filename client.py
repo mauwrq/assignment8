@@ -29,7 +29,13 @@ try: # fails if we cannot connect
 
     while True: # loop so i can input more stuff
         choice = input("> ") # show input
-        s.send(command_list[int(choice) - 1]['code'].encode()) # send as bytes
-        print(s.recv(1024).decode()) # decode bytes to text
+        
+        # validation
+        if choice.isdigit() and 0 < int(choice) <= len(command_list):
+            s.send(command_list[int(choice) - 1]['code'].encode()) # send as bytes
+            print(s.recv(1024).decode()) # decode bytes to text
+        else:
+            print(f"Invalid query. Please enter a number between 1 and {len(command_list)}.")
+            
 except Exception as e:
     print(f"Error: {e}")
