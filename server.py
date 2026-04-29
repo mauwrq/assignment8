@@ -3,6 +3,9 @@ import psycopg2
 import json
 import os
 from dotenv import load_dotenv
+from contextlib import contextmanager
+import numpy as np
+import time
 
 load_dotenv()
 MARC_DB = os.getenv("MARC_DB")
@@ -14,10 +17,59 @@ command_list = [
     {"code" : "ELECTRICITY_USAGE", "display" : "Which house consumed more electricity in the past 24 hours, and by how much?"}
 ]
 
+@contextmanager
+def db_connect():
+    # conn_bert = None
+    conn_marc = None
+    try:
+        # conn_bert = psycopg2.connect(BERT_DB)
+        conn_marc = psycopg2.connect(MARC_DB)
+        # yield conn_bert, conn_marc
+        yield conn_marc
+    finally:
+        # if conn_bert: conn_bert.close()
+        if conn_marc: conn_marc.close()
+
 def query_moisture():
     #db stuff
+    # with db_connect() as (bert, marc):
+    with db_connect() as marc:
+        # cur_bert = bert.cursor()
+        cur_marc = marc.cursor()
+        query = f"""SELECT 
+(payload->>'timestamp')::double precision AS epoch_time,
+payload->>'Moisture Meter - mymoisturemeter' AS moisture_level
+FROM neondata_virtual
+WHERE payload->>'board_name' = 'my3rdrasppi'
+AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL '1 month'
+AND payload->>'Moisture Meter - mymoisturemeter' IS NOT NULL
+ORDER BY epoch_time DESC;"""
+        cur_marc.execute(query)
+        data = cur_marc.fetchall()
+
+        now = time.time()
+        one_hour_ago = now - 3600
+        one_week_ago = now - (7 * 24 * 3600)
+        
+        last_hour_moisture = []
+        last_week_moisture = []
+        last_month_moisture = []
+        
+        for row in data:
+            ts = row[0]
+            moisture = float(row[1])
+            if ts >= one_hour_ago:
+                last_hour_moisture.append(moisture)
+            if ts >= one_week_ago:
+                last_week_moisture.append(moisture)
+            last_month_moisture.append(moisture)
+        
+        marc_avg_moisture_1hr = np.mean(np.array(last_hour_moisture, dtype=float))
+        marc_avg_moisture_1wk = np.mean(np.array(last_week_moisture, dtype=float))
+        marc_avg_moisture_1mo = np.mean(np.array(last_month_moisture, dtype=float))
+
     # psycopg2.connect(bert_db) or psycopg2.connect(marc_db)?
-    return "Moisture level is 50%."
+        return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}"
 
 def query_electricity():
     #db stuff
