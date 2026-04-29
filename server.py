@@ -45,28 +45,28 @@ AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL 
 AND payload->>'Moisture Meter - mymoisturemeter' IS NOT NULL
 ORDER BY epoch_time DESC;"""
         cur_marc.execute(query)
-        data = cur_marc.fetchall()
+        marc_data = cur_marc.fetchall()
 
         now = time.time()
         one_hour_ago = now - 3600
         one_week_ago = now - (7 * 24 * 3600)
         
-        last_hour_moisture = []
-        last_week_moisture = []
-        last_month_moisture = []
+        marc_last_hour_moisture = []
+        marc_last_week_moisture = []
+        marc_last_month_moisture = []
         
-        for row in data:
+        for row in marc_data:
             ts = row[0]
             moisture = float(row[1])
             if ts >= one_hour_ago:
-                last_hour_moisture.append(moisture)
+                marc_last_hour_moisture.append(moisture)
             if ts >= one_week_ago:
-                last_week_moisture.append(moisture)
-            last_month_moisture.append(moisture)
+                marc_last_week_moisture.append(moisture)
+            marc_last_month_moisture.append(moisture)
         
-        marc_avg_moisture_1hr = np.mean(np.array(last_hour_moisture, dtype=float))
-        marc_avg_moisture_1wk = np.mean(np.array(last_week_moisture, dtype=float))
-        marc_avg_moisture_1mo = np.mean(np.array(last_month_moisture, dtype=float))
+        marc_avg_moisture_1hr = np.mean(np.array(marc_last_hour_moisture, dtype=float))
+        marc_avg_moisture_1wk = np.mean(np.array(marc_last_week_moisture, dtype=float))
+        marc_avg_moisture_1mo = np.mean(np.array(marc_last_month_moisture, dtype=float))
 
     # psycopg2.connect(bert_db) or psycopg2.connect(marc_db)?
         return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}"
