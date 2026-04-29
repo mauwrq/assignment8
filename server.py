@@ -36,7 +36,7 @@ def query_moisture():
     with db_connect() as marc:
         # cur_bert = bert.cursor()
         cur_marc = marc.cursor()
-        query = f"""SELECT 
+        marc_query = f"""SELECT 
 (payload->>'timestamp')::double precision AS epoch_time,
 payload->>'Moisture Meter - mymoisturemeter' AS moisture_level
 FROM neondata_virtual
@@ -44,7 +44,7 @@ WHERE payload->>'board_name' = 'my3rdrasppi'
 AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL '1 month'
 AND payload->>'Moisture Meter - mymoisturemeter' IS NOT NULL
 ORDER BY epoch_time DESC;"""
-        cur_marc.execute(query)
+        cur_marc.execute(marc_query)
         marc_data = cur_marc.fetchall()
 
         now = time.time()
