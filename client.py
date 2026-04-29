@@ -25,9 +25,10 @@ try: # fails if we cannot connect
     command_list_json = command_list_recv.decode('utf-8')
     command_list = json.loads(command_list_json)
     command_menu = build_command_menu(command_list)
-    print(command_menu)
 
     while True: # loop so i can input more stuff
+        print()
+        print(command_menu)
         choice = input("> ") # show input
         
         # validation
