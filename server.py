@@ -52,6 +52,8 @@ AND payload->>'Moisture Meter - moisture_meter' IS NOT NULL
 ORDER BY epoch_time DESC"""
         cur_marc.execute(marc_query)
         marc_data = cur_marc.fetchall()
+        cur_bert.execute(bert_query)
+        bert_data = cur_bert.fetchall()
 
         now = time.time()
         one_hour_ago = now - 3600
@@ -60,6 +62,10 @@ ORDER BY epoch_time DESC"""
         marc_last_hour_moisture = []
         marc_last_week_moisture = []
         marc_last_month_moisture = []
+
+        bert_last_hour_moisture = []
+        bert_last_week_moisture = []
+        bert_last_month_moisture = []
         
         for row in marc_data:
             ts = row[0]
@@ -69,13 +75,27 @@ ORDER BY epoch_time DESC"""
             if ts >= one_week_ago:
                 marc_last_week_moisture.append(moisture)
             marc_last_month_moisture.append(moisture)
+
+        for row in bert_data:
+            ts = row[0]
+            moisture = float(row[1])
+            if ts >= one_hour_ago:
+                bert_last_hour_moisture.append(moisture)
+            if ts >= one_week_ago:
+                bert_last_week_moisture.append(moisture)
+            bert_last_month_moisture.append(moisture)
         
         marc_avg_moisture_1hr = np.mean(np.array(marc_last_hour_moisture, dtype=float))
         marc_avg_moisture_1wk = np.mean(np.array(marc_last_week_moisture, dtype=float))
         marc_avg_moisture_1mo = np.mean(np.array(marc_last_month_moisture, dtype=float))
 
+        bert_avg_moisture_1hr = np.mean(np.array(bert_last_hour_moisture, dtype=float))
+        bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
+        bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
+        
     # psycopg2.connect(bert_db) or psycopg2.connect(marc_db)?
-        return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}"
+        return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}\nAlbert's Smart Fridge Average Moisture:\n1 hour: {bert_avg_moisture_1hr}\n1 week: {bert_avg_moisture_1wk}\n1 month: {bert_avg_moisture_1mo}"
+
 
 def query_electricity():
     #db stuff
