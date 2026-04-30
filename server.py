@@ -93,7 +93,6 @@ ORDER BY epoch_time DESC"""
         bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
         bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
         
-    # psycopg2.connect(bert_db) or psycopg2.connect(marc_db)?
         return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}\nAlbert's Smart Fridge Average Moisture:\n1 hour: {bert_avg_moisture_1hr}\n1 week: {bert_avg_moisture_1wk}\n1 month: {bert_avg_moisture_1mo}"
 
 
