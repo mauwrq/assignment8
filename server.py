@@ -19,22 +19,20 @@ command_list = [
 
 @contextmanager
 def db_connect():
-    # conn_bert = None
+    conn_bert = None
     conn_marc = None
     try:
-        # conn_bert = psycopg2.connect(BERT_DB)
+        conn_bert = psycopg2.connect(BERT_DB)
         conn_marc = psycopg2.connect(MARC_DB)
-        # yield conn_bert, conn_marc
-        yield conn_marc
+        yield conn_bert, conn_marc
     finally:
-        # if conn_bert: conn_bert.close()
+        if conn_bert: conn_bert.close()
         if conn_marc: conn_marc.close()
 
 def query_moisture():
     #db stuff
-    # with db_connect() as (bert, marc):
-    with db_connect() as marc:
-        # cur_bert = bert.cursor()
+    with db_connect() as (bert, marc):
+        cur_bert = bert.cursor()
         cur_marc = marc.cursor()
         marc_query = f"""SELECT 
 (payload->>'timestamp')::double precision AS epoch_time,
@@ -44,6 +42,14 @@ WHERE payload->>'board_name' = 'my3rdrasppi'
 AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL '1 month'
 AND payload->>'Moisture Meter - mymoisturemeter' IS NOT NULL
 ORDER BY epoch_time DESC;"""
+        bert_query = f"""SELECT 
+(payload->>'timestamp')::double precision AS epoch_time,
+payload->>'Moisture Meter - moisture_meter' AS moisture_level
+FROM my_iot_virtual
+WHERE payload->>'board_name' = 'raspberrypi'
+AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL '1 month'
+AND payload->>'Moisture Meter - moisture_meter' IS NOT NULL
+ORDER BY epoch_time DESC"""
         cur_marc.execute(marc_query)
         marc_data = cur_marc.fetchall()
 
