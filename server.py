@@ -52,7 +52,7 @@ def query_moisture():
 
         seconds_in_month = 30 * 24 * 60 * 60
         one_month_ago = time.time() - seconds_in_month
-        if DATA_SHARE_TIME < one_month_ago:
+        if int(DATA_SHARE_TIME) < one_month_ago:
             cur_bert = marc.cursor()
             bert_query = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= NOW() - INTERVAL '1 month'")
             cur_bert.execute(bert_query)
