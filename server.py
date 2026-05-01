@@ -14,11 +14,22 @@ MARC_DB = os.getenv("MARC_DB")
 BERT_DB = os.getenv("BERT_DB")
 
 DATA_SHARE_TIME = "1777524303"
+SECONDS_IN_DAY = 24 * 60 * 60
 
 command_list = [
     {"code" : "MOISTURE_LEVEL", "display" : "What is the average moisture inside our kitchen fridges in the past hours, week and month?"},
     {"code" : "WATER_CONSUMPTION", "display" : "What is the average water consumption per cycle across our smart dishwashers in the past hour, week and month?"},
     {"code" : "ELECTRICITY_USAGE", "display" : "Which house consumed more electricity in the past 24 hours, and by how much?"}
+]
+
+MARC_ELECTRICITY_SENSORS = [
+    ("my2ndraspberrypi", "ammeter2"),
+    ("myraspberrypi", "ammeter"),
+]
+
+ALBERT_ELECTRICITY_SENSORS = [
+    ("raspberrypi", "Ammeter"),
+    ("raspberrydish", "Ammeter_Dish"),
 ]
 
 @contextmanager
@@ -32,9 +43,9 @@ def db_connect():
     finally:
         if conn_bert: conn_bert.close()
         if conn_marc: conn_marc.close()
-        
+
 def build_query(sensor, measurement, table, board, time):
-    query = f"""SELECT 
+    query = f"""SELECT
 (payload->>'timestamp')::double precision AS epoch_time,
 payload->>'{sensor}' AS {measurement}
 FROM {table}
@@ -48,6 +59,32 @@ def to_pst(epoch_seconds):
     return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).astimezone(
         ZoneInfo("America/Los_Angeles")
     ).strftime("%Y-%m-%d %I:%M:%S %p %Z")
+
+def fetch_electricity_readings(cursor, table, sensors, time_filter):
+    data = []
+
+    for board, sensor in sensors:
+        query = build_query(sensor, "electricity_usage", table, board, time_filter)
+        cursor.execute(query)
+        data += cursor.fetchall()
+
+    return data
+
+def sum_electricity_usage(data):
+    total = 0.0
+
+    for row in data:
+        total += float(row[1])
+
+    return total
+
+def format_kwh(value):
+    return f"{value:.2f}"
+
+def format_sensor_list(sensors):
+    return ", ".join(
+        f"{board}/{sensor}" for board, sensor in sensors
+    )
 
 def query_moisture():
     #db stuff
@@ -78,7 +115,7 @@ def query_moisture():
         now = time.time()
         one_hour_ago = now - 3600
         one_week_ago = now - (7 * 24 * 3600)
-        
+
         marc_last_hour_moisture = []
         marc_last_week_moisture = []
         marc_last_month_moisture = []
@@ -86,7 +123,7 @@ def query_moisture():
         bert_last_hour_moisture = []
         bert_last_week_moisture = []
         bert_last_month_moisture = []
-        
+
         for row in marc_data:
             ts = row[0]
             moisture = float(row[1])
@@ -104,7 +141,7 @@ def query_moisture():
             if ts >= one_week_ago:
                 bert_last_week_moisture.append(moisture)
             bert_last_month_moisture.append(moisture)
-        
+
         marc_avg_moisture_1hr = np.mean(np.array(marc_last_hour_moisture, dtype=float))
         marc_avg_moisture_1wk = np.mean(np.array(marc_last_week_moisture, dtype=float))
         marc_avg_moisture_1mo = np.mean(np.array(marc_last_month_moisture, dtype=float))
@@ -112,7 +149,7 @@ def query_moisture():
         bert_avg_moisture_1hr = np.mean(np.array(bert_last_hour_moisture, dtype=float))
         bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
         bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
-        
+
         now = time.time()
 
     return (
@@ -127,8 +164,65 @@ def query_moisture():
     )
 
 def query_electricity():
-    #db stuff
-    return "Electricity usage is 200 kWh."
+    with db_connect() as (bert, marc):
+        cur_marc = marc.cursor()
+        marc_data = fetch_electricity_readings(
+            cur_marc,
+            "neondata_virtual",
+            MARC_ELECTRICITY_SENSORS,
+            ">= NOW() - INTERVAL '24 hours'",
+        )
+
+        one_day_ago = time.time() - SECONDS_IN_DAY
+        if float(DATA_SHARE_TIME) < one_day_ago:
+            albert_data = fetch_electricity_readings(
+                cur_marc,
+                "neondata_virtual",
+                ALBERT_ELECTRICITY_SENSORS,
+                ">= NOW() - INTERVAL '24 hours'",
+            )
+        else:
+            albert_shared_data = fetch_electricity_readings(
+                cur_marc,
+                "neondata_virtual",
+                ALBERT_ELECTRICITY_SENSORS,
+                ">= to_timestamp(" + DATA_SHARE_TIME + ")",
+            )
+
+            cur_bert = bert.cursor()
+            albert_original_data = fetch_electricity_readings(
+                cur_bert,
+                "my_iot_virtual",
+                ALBERT_ELECTRICITY_SENSORS,
+                ">= NOW() - INTERVAL '24 hours'\n"
+                "AND to_timestamp((payload->>'timestamp')::double precision) < to_timestamp("
+                + DATA_SHARE_TIME
+                + ")",
+            )
+
+            albert_data = albert_shared_data + albert_original_data
+
+        marc_total = sum_electricity_usage(marc_data)
+        albert_total = sum_electricity_usage(albert_data)
+
+    difference = abs(marc_total - albert_total)
+
+    if marc_total > albert_total:
+        higher_usage = "Marc's house"
+    elif albert_total > marc_total:
+        higher_usage = "Albert's house"
+    else:
+        higher_usage = "Tie"
+
+    return (
+        "Electricity Usage Comparison (Past 24 Hours, Pacific Time)\n"
+        f"Marc's house: {format_kwh(marc_total)} kWh\n"
+        f"Albert's house: {format_kwh(albert_total)} kWh\n"
+        f"Higher usage: {higher_usage}\n"
+        f"Difference: {format_kwh(difference)} kWh\n\n"
+        f"Marc sensors: {format_sensor_list(MARC_ELECTRICITY_SENSORS)}\n"
+        f"Albert sensors: {format_sensor_list(ALBERT_ELECTRICITY_SENSORS)}"
+    )
 
 def query_water():
     #db stuff
@@ -159,7 +253,7 @@ def query_water():
         now = time.time()
         one_hour_ago = now - 3600
         one_week_ago = now - (7 * 24 * 3600)
-        
+
         marc_last_hour_moisture = []
         marc_last_week_moisture = []
         marc_last_month_moisture = []
@@ -167,7 +261,7 @@ def query_water():
         bert_last_hour_moisture = []
         bert_last_week_moisture = []
         bert_last_month_moisture = []
-        
+
         for row in marc_data:
             ts = row[0]
             moisture = float(row[1])
@@ -185,7 +279,7 @@ def query_water():
             if ts >= one_week_ago:
                 bert_last_week_moisture.append(moisture)
             bert_last_month_moisture.append(moisture)
-        
+
         marc_avg_moisture_1hr = np.mean(np.array(marc_last_hour_moisture, dtype=float))
         marc_avg_moisture_1wk = np.mean(np.array(marc_last_week_moisture, dtype=float))
         marc_avg_moisture_1mo = np.mean(np.array(marc_last_month_moisture, dtype=float))
@@ -193,7 +287,7 @@ def query_water():
         bert_avg_moisture_1hr = np.mean(np.array(bert_last_hour_moisture, dtype=float))
         bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
         bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
-        
+
         now = time.time()
 
         return (
@@ -218,22 +312,28 @@ def query_select(user_choice):
     else:
         return "Invalid query."
 
-PORT = 1024
-s = socket.socket() # initialize socket
-s.bind(('0.0.0.0', PORT)) # listen on all network interfaces and set port as 1024 (change to whatever port you have opened)
-s.listen(1) # set it to listen
-print(f"Server listening on port {PORT}...")
+def run_server():
+    PORT = 1024
+    with socket.socket() as s: # initialize socket
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(('0.0.0.0', PORT)) # listen on all network interfaces and set port as 1024 (change to whatever port you have opened)
+        s.listen(1) # set it to listen
+        print(f"Server listening on port {PORT}...")
 
-# send commands
-conn, addr = s.accept() # get the connection and address
-command_list_json = json.dumps(command_list)
-conn.send(command_list_json.encode('utf-8'))
+        # send commands
+        conn, addr = s.accept() # get the connection and address
+        with conn:
+            command_list_json = json.dumps(command_list)
+            conn.sendall(command_list_json.encode('utf-8'))
 
-while True:
-    data = conn.recv(1024) # receive
-    if not data: break # if theres no more data then stop
+            while True:
+                data = conn.recv(1024) # receive
+                if not data: break # if theres no more data then stop
 
-    client_message = data.decode() # decode the bytes to a string
-    response = query_select(client_message) # run the query select function with the client's 1, 2, or 3
+                client_message = data.decode() # decode the bytes to a string
+                response = query_select(client_message) # run the query select function with the client's 1, 2, or 3
 
-    conn.send(response.encode())
+                conn.sendall(response.encode())
+
+if __name__ == "__main__":
+    run_server()

@@ -34,7 +34,7 @@ try: # fails if we cannot connect
         # validation
         if choice.isdigit() and 0 < int(choice) <= len(command_list):
             s.send(command_list[int(choice) - 1]['code'].encode()) # send as bytes
-            print(s.recv(1024).decode()) # decode bytes to text
+            print(s.recv(4096).decode()) # decode bytes to text
         else:
             print(f"Invalid query. Please enter a number between 1 and {len(command_list)}.")
             
