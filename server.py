@@ -71,12 +71,23 @@ def fetch_electricity_readings(cursor, table, sensors, time_filter):
     return data
 
 def sum_electricity_usage(data):
-    total = 0.0
+    total_kwh = 0.0
+    VOLTAGE = 120  # most plugs are 120
+    data.sort(key=lambda x: x[0])
 
-    for row in data:
-        total += float(row[1])
-
-    return total
+    for i in range(len(data) - 1):
+        current_amps = float(data[i][1])
+        
+        #time difference between readings in hours
+        time_start = data[i][0]
+        time_end = data[i+1][0]
+        duration_hours = (time_end - time_start) / 3600
+        
+        # nergy kWh = (Amps *Volts * Hours) /1000
+        interval_kwh = (current_amps * VOLTAGE *duration_hours)/ 1000
+        total_kwh += interval_kwh
+        
+    return total_kwh
 
 def format_kwh(value):
     return f"{value:.2f}"
