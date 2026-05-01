@@ -154,13 +154,13 @@ def query_moisture():
 
     return (
         f"Marc's Smart Fridge Average Moisture:\n"
-        f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_moisture_1hr}\n"
-        f"1 week (since {to_pst(one_week_ago)}): {marc_avg_moisture_1wk}\n"
-        f"1 month (since {to_pst(one_month_ago)}): {marc_avg_moisture_1mo}\n\n"
+        f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_moisture_1hr:.2f} MC%\n"
+        f"1 week (since {to_pst(one_week_ago)}): {marc_avg_moisture_1wk:.2f} MC%\n"
+        f"1 month (since {to_pst(one_month_ago)}): {marc_avg_moisture_1mo:.2f} MC%\n\n"
         f"Albert's Smart Fridge Average Moisture:\n"
-        f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_moisture_1hr}\n"
-        f"1 week (since {to_pst(one_week_ago)}): {bert_avg_moisture_1wk}\n"
-        f"1 month (since {to_pst(one_month_ago)}): {bert_avg_moisture_1mo}"
+        f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_moisture_1hr:.2f} MC%\n"
+        f"1 week (since {to_pst(one_week_ago)}): {bert_avg_moisture_1wk:.2f} MC%\n"
+        f"1 month (since {to_pst(one_month_ago)}): {bert_avg_moisture_1mo:.2f} MC%"
     )
 
 def query_electricity():
@@ -254,51 +254,51 @@ def query_water():
         one_hour_ago = now - 3600
         one_week_ago = now - (7 * 24 * 3600)
 
-        marc_last_hour_moisture = []
-        marc_last_week_moisture = []
-        marc_last_month_moisture = []
+        marc_last_hour_water = []
+        marc_last_week_water = []
+        marc_last_month_water = []
 
-        bert_last_hour_moisture = []
-        bert_last_week_moisture = []
-        bert_last_month_moisture = []
+        bert_last_hour_water = []
+        bert_last_week_water = []
+        bert_last_month_water = []
 
         for row in marc_data:
             ts = row[0]
-            moisture = float(row[1])
+            water = float(row[1])
             if ts >= one_hour_ago:
-                marc_last_hour_moisture.append(moisture)
+                marc_last_hour_water.append(water)
             if ts >= one_week_ago:
-                marc_last_week_moisture.append(moisture)
-            marc_last_month_moisture.append(moisture)
+                marc_last_week_water.append(water)
+            marc_last_month_water.append(water)
 
         for row in bert_data:
             ts = row[0]
-            moisture = float(row[1])
+            water = float(row[1])
             if ts >= one_hour_ago:
-                bert_last_hour_moisture.append(moisture)
+                bert_last_hour_water.append(water)
             if ts >= one_week_ago:
-                bert_last_week_moisture.append(moisture)
-            bert_last_month_moisture.append(moisture)
+                bert_last_week_water.append(water)
+            bert_last_month_water.append(water)
 
-        marc_avg_moisture_1hr = np.mean(np.array(marc_last_hour_moisture, dtype=float))
-        marc_avg_moisture_1wk = np.mean(np.array(marc_last_week_moisture, dtype=float))
-        marc_avg_moisture_1mo = np.mean(np.array(marc_last_month_moisture, dtype=float))
+        marc_avg_water_1hr = np.mean(np.array(marc_last_hour_water, dtype=float))
+        marc_avg_water_1wk = np.mean(np.array(marc_last_week_water, dtype=float))
+        marc_avg_water_1mo = np.mean(np.array(marc_last_month_water, dtype=float))
 
-        bert_avg_moisture_1hr = np.mean(np.array(bert_last_hour_moisture, dtype=float))
-        bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
-        bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
+        bert_avg_water_1hr = np.mean(np.array(bert_last_hour_water, dtype=float))
+        bert_avg_water_1wk = np.mean(np.array(bert_last_week_water, dtype=float))
+        bert_avg_water_1mo = np.mean(np.array(bert_last_month_water, dtype=float))
 
         now = time.time()
 
         return (
             f"Marc's Smart Fridge Average Moisture:\n"
-            f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_moisture_1hr}\n"
-            f"1 week (since {to_pst(one_week_ago)}): {marc_avg_moisture_1wk}\n"
-            f"1 month (since {to_pst(one_month_ago)}): {marc_avg_moisture_1mo}\n\n"
+            f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_water_1hr:.2f} L\n"
+            f"1 week (since {to_pst(one_week_ago)}): {marc_avg_water_1wk:.2f} L\n"
+            f"1 month (since {to_pst(one_month_ago)}): {marc_avg_water_1mo:.2f} L\n\n"
             f"Albert's Smart Fridge Average Moisture:\n"
-            f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_moisture_1hr}\n"
-            f"1 week (since {to_pst(one_week_ago)}): {bert_avg_moisture_1wk}\n"
-            f"1 month (since {to_pst(one_month_ago)}): {bert_avg_moisture_1mo}"
+            f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_water_1hr:.2f} L\n"
+            f"1 week (since {to_pst(one_week_ago)}): {bert_avg_water_1wk:.2f} L\n"
+            f"1 month (since {to_pst(one_month_ago)}): {bert_avg_water_1mo:.2f} L"
         )
 
 
