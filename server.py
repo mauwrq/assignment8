@@ -107,7 +107,62 @@ def query_electricity():
 
 def query_water():
     #db stuff
-    return "Water usage is 100 liters."
+    with db_connect() as (bert, marc):
+        cur_marc = marc.cursor()
+        marc_query = build_query('watercomsumptionsensor', 'water_consumption', 'neondata_virtual', 'my5thrasppi', ">= NOW() - INTERVAL '1 month'")
+        cur_marc.execute(marc_query)
+        marc_data = cur_marc.fetchall()
+
+        cur_bert1 = marc.cursor()
+        cur_bert2 = bert.cursor()
+        bert_query1 = build_query('Water Consumption Meter', 'water_consumption', 'neondata_virtual', 'raspberrydish', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
+        bert_query2 = build_query('Water Consumption Meter', 'water_consumption', 'my_iot_virtual', 'raspberrydish', "< to_timestamp(" + DATA_SHARE_TIME + ")")
+        cur_bert1.execute(bert_query1)
+        cur_bert2.execute(bert_query2)
+        bert_data1 = cur_bert1.fetchall()
+        bert_data2 = cur_bert2.fetchall()
+        bert_data = bert_data1 + bert_data2
+
+        now = time.time()
+        one_hour_ago = now - 3600
+        one_week_ago = now - (7 * 24 * 3600)
+        
+        marc_last_hour_moisture = []
+        marc_last_week_moisture = []
+        marc_last_month_moisture = []
+
+        bert_last_hour_moisture = []
+        bert_last_week_moisture = []
+        bert_last_month_moisture = []
+        
+        for row in marc_data:
+            ts = row[0]
+            moisture = float(row[1])
+            if ts >= one_hour_ago:
+                marc_last_hour_moisture.append(moisture)
+            if ts >= one_week_ago:
+                marc_last_week_moisture.append(moisture)
+            marc_last_month_moisture.append(moisture)
+
+        for row in bert_data:
+            ts = row[0]
+            moisture = float(row[1])
+            if ts >= one_hour_ago:
+                bert_last_hour_moisture.append(moisture)
+            if ts >= one_week_ago:
+                bert_last_week_moisture.append(moisture)
+            bert_last_month_moisture.append(moisture)
+        
+        marc_avg_moisture_1hr = np.mean(np.array(marc_last_hour_moisture, dtype=float))
+        marc_avg_moisture_1wk = np.mean(np.array(marc_last_week_moisture, dtype=float))
+        marc_avg_moisture_1mo = np.mean(np.array(marc_last_month_moisture, dtype=float))
+
+        bert_avg_moisture_1hr = np.mean(np.array(bert_last_hour_moisture, dtype=float))
+        bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
+        bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
+        
+        return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}\nAlbert's Smart Fridge Average Moisture:\n1 hour: {bert_avg_moisture_1hr}\n1 week: {bert_avg_moisture_1wk}\n1 month: {bert_avg_moisture_1mo}"
+
 
 def query_select(user_choice):
     if user_choice == "MOISTURE_LEVEL":
