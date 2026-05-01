@@ -11,6 +11,8 @@ load_dotenv()
 MARC_DB = os.getenv("MARC_DB")
 BERT_DB = os.getenv("BERT_DB")
 
+DATA_SHARE_TIME = 1777524303
+
 command_list = [
     {"code" : "MOISTURE_LEVEL", "display" : "What is the average moisture inside our kitchen fridges in the past hours, week and month?"},
     {"code" : "WATER_CONSUMPTION", "display" : "What is the average water consumption per cycle across our smart dishwashers in the past hour, week and month?"},
@@ -28,20 +30,25 @@ def db_connect():
     finally:
         if conn_bert: conn_bert.close()
         if conn_marc: conn_marc.close()
+        
+def build_query(sensor, measurement, table, board, time):
+    query = f"""SELECT 
+(payload->>'timestamp')::double precision AS epoch_time,
+payload->>'{sensor}' AS {measurement}
+FROM {table}
+WHERE payload->>'board_name' = '{board}'
+AND to_timestamp((payload->>'timestamp')::double precision) {time}
+AND payload->>'{sensor}' IS NOT NULL
+ORDER BY epoch_time DESC;"""
+    return query
 
 def query_moisture():
     #db stuff
     with db_connect() as (bert, marc):
         cur_bert = bert.cursor()
         cur_marc = marc.cursor()
-        marc_query = f"""SELECT 
-(payload->>'timestamp')::double precision AS epoch_time,
-payload->>'Moisture Meter - mymoisturemeter' AS moisture_level
-FROM neondata_virtual
-WHERE payload->>'board_name' = 'my3rdrasppi'
-AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL '1 month'
-AND payload->>'Moisture Meter - mymoisturemeter' IS NOT NULL
-ORDER BY epoch_time DESC;"""
+        marc_query = build_query('Moisture Meter - mymoisturemeter', 'moisture_level', 'neondata_virtual', 'my3rdrasppi', ">= NOW() - INTERVAL '1 month'")
+        #bert_query1 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'my_iot_virtual', 'raspberrypi', ">= " + str(DATA_SHARE_TIME))
         bert_query = f"""SELECT 
 (payload->>'timestamp')::double precision AS epoch_time,
 payload->>'Moisture Meter - moisture_meter' AS moisture_level
