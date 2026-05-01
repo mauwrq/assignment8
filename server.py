@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from contextlib import contextmanager
 import numpy as np
 import time
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 load_dotenv()
 MARC_DB = os.getenv("MARC_DB")
@@ -41,6 +43,11 @@ AND to_timestamp((payload->>'timestamp')::double precision) {time}
 AND payload->>'{sensor}' IS NOT NULL
 ORDER BY epoch_time DESC;"""
     return query
+
+def to_pst(epoch_seconds):
+    return datetime.fromtimestamp(epoch_seconds, tz=timezone.utc).astimezone(
+        ZoneInfo("America/Los_Angeles")
+    ).strftime("%Y-%m-%d %I:%M:%S %p %Z")
 
 def query_moisture():
     #db stuff
@@ -106,8 +113,18 @@ def query_moisture():
         bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
         bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
         
-        return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}\nAlbert's Smart Fridge Average Moisture:\n1 hour: {bert_avg_moisture_1hr}\n1 week: {bert_avg_moisture_1wk}\n1 month: {bert_avg_moisture_1mo}"
+        now = time.time()
 
+    return (
+        f"Marc's Smart Fridge Average Moisture:\n"
+        f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_moisture_1hr}\n"
+        f"1 week (since {to_pst(one_week_ago)}): {marc_avg_moisture_1wk}\n"
+        f"1 month (since {to_pst(one_month_ago)}): {marc_avg_moisture_1mo}\n\n"
+        f"Albert's Smart Fridge Average Moisture:\n"
+        f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_moisture_1hr}\n"
+        f"1 week (since {to_pst(one_week_ago)}): {bert_avg_moisture_1wk}\n"
+        f"1 month (since {to_pst(one_month_ago)}): {bert_avg_moisture_1mo}"
+    )
 
 def query_electricity():
     #db stuff
@@ -121,15 +138,23 @@ def query_water():
         cur_marc.execute(marc_query)
         marc_data = cur_marc.fetchall()
 
-        cur_bert1 = marc.cursor()
-        cur_bert2 = bert.cursor()
-        bert_query1 = build_query('Water Consumption Meter', 'water_consumption', 'neondata_virtual', 'raspberrydish', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
-        bert_query2 = build_query('Water Consumption Meter', 'water_consumption', 'my_iot_virtual', 'raspberrydish', "< to_timestamp(" + DATA_SHARE_TIME + ")")
-        cur_bert1.execute(bert_query1)
-        cur_bert2.execute(bert_query2)
-        bert_data1 = cur_bert1.fetchall()
-        bert_data2 = cur_bert2.fetchall()
-        bert_data = bert_data1 + bert_data2
+        seconds_in_month = 30 * 24 * 60 * 60
+        one_month_ago = time.time() - seconds_in_month
+        if int(DATA_SHARE_TIME) < one_month_ago:
+            cur_bert = marc.cursor()
+            bert_query = build_query('Water Consumption Meter', 'water_consumption', 'neondata_virtual', 'raspberrydish', ">= NOW() - INTERVAL '1 month'")
+            cur_bert.execute(bert_query)
+            bert_data = cur_bert.fetchall()
+        else:
+            cur_bert1 = marc.cursor()
+            cur_bert2 = bert.cursor()
+            bert_query1 = build_query('Water Consumption Meter', 'water_consumption', 'neondata_virtual', 'raspberrydish', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
+            bert_query2 = build_query('Water Consumption Meter', 'water_consumption', 'my_iot_virtual', 'raspberrydish', "< to_timestamp(" + DATA_SHARE_TIME + ")")
+            cur_bert1.execute(bert_query1)
+            cur_bert2.execute(bert_query2)
+            bert_data1 = cur_bert1.fetchall()
+            bert_data2 = cur_bert2.fetchall()
+            bert_data = bert_data1 + bert_data2
 
         now = time.time()
         one_hour_ago = now - 3600
@@ -169,7 +194,18 @@ def query_water():
         bert_avg_moisture_1wk = np.mean(np.array(bert_last_week_moisture, dtype=float))
         bert_avg_moisture_1mo = np.mean(np.array(bert_last_month_moisture, dtype=float))
         
-        return f"Marc's Smart Fridge Average Moisture:\n1 hour: {marc_avg_moisture_1hr}\n1 week: {marc_avg_moisture_1wk}\n1 month: {marc_avg_moisture_1mo}\nAlbert's Smart Fridge Average Moisture:\n1 hour: {bert_avg_moisture_1hr}\n1 week: {bert_avg_moisture_1wk}\n1 month: {bert_avg_moisture_1mo}"
+        now = time.time()
+
+        return (
+            f"Marc's Smart Fridge Average Moisture:\n"
+            f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_moisture_1hr}\n"
+            f"1 week (since {to_pst(one_week_ago)}): {marc_avg_moisture_1wk}\n"
+            f"1 month (since {to_pst(one_month_ago)}): {marc_avg_moisture_1mo}\n\n"
+            f"Albert's Smart Fridge Average Moisture:\n"
+            f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_moisture_1hr}\n"
+            f"1 week (since {to_pst(one_week_ago)}): {bert_avg_moisture_1wk}\n"
+            f"1 month (since {to_pst(one_month_ago)}): {bert_avg_moisture_1mo}"
+        )
 
 
 def query_select(user_choice):
