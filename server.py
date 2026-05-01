@@ -11,7 +11,7 @@ load_dotenv()
 MARC_DB = os.getenv("MARC_DB")
 BERT_DB = os.getenv("BERT_DB")
 
-DATA_SHARE_TIME = 1777524303
+DATA_SHARE_TIME = "1777524303"
 
 command_list = [
     {"code" : "MOISTURE_LEVEL", "display" : "What is the average moisture inside our kitchen fridges in the past hours, week and month?"},
@@ -45,22 +45,20 @@ ORDER BY epoch_time DESC;"""
 def query_moisture():
     #db stuff
     with db_connect() as (bert, marc):
-        cur_bert = bert.cursor()
         cur_marc = marc.cursor()
         marc_query = build_query('Moisture Meter - mymoisturemeter', 'moisture_level', 'neondata_virtual', 'my3rdrasppi', ">= NOW() - INTERVAL '1 month'")
-        #bert_query1 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'my_iot_virtual', 'raspberrypi', ">= " + str(DATA_SHARE_TIME))
-        bert_query = f"""SELECT 
-(payload->>'timestamp')::double precision AS epoch_time,
-payload->>'Moisture Meter - moisture_meter' AS moisture_level
-FROM my_iot_virtual
-WHERE payload->>'board_name' = 'raspberrypi'
-AND to_timestamp((payload->>'timestamp')::double precision) >= NOW() - INTERVAL '1 month'
-AND payload->>'Moisture Meter - moisture_meter' IS NOT NULL
-ORDER BY epoch_time DESC"""
         cur_marc.execute(marc_query)
         marc_data = cur_marc.fetchall()
-        cur_bert.execute(bert_query)
-        bert_data = cur_bert.fetchall()
+
+        cur_bert1 = marc.cursor()
+        cur_bert2 = bert.cursor()
+        bert_query1 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
+        bert_query2 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'my_iot_virtual', 'raspberrypi', "< to_timestamp(" + DATA_SHARE_TIME + ")")
+        cur_bert1.execute(bert_query1)
+        cur_bert2.execute(bert_query2)
+        bert_data1 = cur_bert1.fetchall()
+        bert_data2 = cur_bert2.fetchall()
+        bert_data = bert_data1 + bert_data2
 
         now = time.time()
         one_hour_ago = now - 3600
