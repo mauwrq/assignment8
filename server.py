@@ -32,6 +32,7 @@ ALBERT_ELECTRICITY_SENSORS = [
     ("raspberrydish", "Ammeter_Dish"),
 ]
 
+# handles connecting to both databases
 @contextmanager
 def db_connect():
     conn_bert = None
@@ -107,12 +108,12 @@ def query_moisture():
 
         seconds_in_month = 30 * 24 * 60 * 60
         one_month_ago = time.time() - seconds_in_month
-        if int(DATA_SHARE_TIME) < one_month_ago:
+        if int(DATA_SHARE_TIME) < one_month_ago: # takes data from marc's database if its after the 1 month window
             cur_bert = marc.cursor()
             bert_query = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= NOW() - INTERVAL '1 month'")
             cur_bert.execute(bert_query)
             bert_data = cur_bert.fetchall()
-        else:
+        else: # takes data from marc's db until the sharing window and takes the rest from alberts
             cur_bert1 = marc.cursor()
             cur_bert2 = bert.cursor()
             bert_query1 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
