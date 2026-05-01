@@ -50,15 +50,23 @@ def query_moisture():
         cur_marc.execute(marc_query)
         marc_data = cur_marc.fetchall()
 
-        cur_bert1 = marc.cursor()
-        cur_bert2 = bert.cursor()
-        bert_query1 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
-        bert_query2 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'my_iot_virtual', 'raspberrypi', "< to_timestamp(" + DATA_SHARE_TIME + ")")
-        cur_bert1.execute(bert_query1)
-        cur_bert2.execute(bert_query2)
-        bert_data1 = cur_bert1.fetchall()
-        bert_data2 = cur_bert2.fetchall()
-        bert_data = bert_data1 + bert_data2
+        seconds_in_month = 30 * 24 * 60 * 60
+        one_month_ago = time.time() - seconds_in_month
+        if DATA_SHARE_TIME < one_month_ago:
+            cur_bert = marc.cursor()
+            bert_query = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= NOW() - INTERVAL '1 month'")
+            cur_bert.execute(bert_query)
+            bert_data = cur_bert.fetchall()
+        else:
+            cur_bert1 = marc.cursor()
+            cur_bert2 = bert.cursor()
+            bert_query1 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'neondata_virtual', 'raspberrypi', ">= to_timestamp(" + DATA_SHARE_TIME + ")")
+            bert_query2 = build_query('Moisture Meter - moisture_meter', 'moisture_level', 'my_iot_virtual', 'raspberrypi', "< to_timestamp(" + DATA_SHARE_TIME + ")")
+            cur_bert1.execute(bert_query1)
+            cur_bert2.execute(bert_query2)
+            bert_data1 = cur_bert1.fetchall()
+            bert_data2 = cur_bert2.fetchall()
+            bert_data = bert_data1 + bert_data2
 
         now = time.time()
         one_hour_ago = now - 3600
