@@ -303,11 +303,11 @@ def query_water():
         now = time.time()
 
         return (
-            f"Marc's Smart Fridge Average Moisture:\n"
+            f"Marc's Dishwasher Average Water Consumption:\n"
             f"1 hour (since {to_pst(one_hour_ago)}): {marc_avg_water_1hr:.2f} L\n"
             f"1 week (since {to_pst(one_week_ago)}): {marc_avg_water_1wk:.2f} L\n"
             f"1 month (since {to_pst(one_month_ago)}): {marc_avg_water_1mo:.2f} L\n\n"
-            f"Albert's Smart Fridge Average Moisture:\n"
+            f"Albert's Dishwasher Average Water Consumption:\n"
             f"1 hour (since {to_pst(one_hour_ago)}): {bert_avg_water_1hr:.2f} L\n"
             f"1 week (since {to_pst(one_week_ago)}): {bert_avg_water_1wk:.2f} L\n"
             f"1 month (since {to_pst(one_month_ago)}): {bert_avg_water_1mo:.2f} L"
